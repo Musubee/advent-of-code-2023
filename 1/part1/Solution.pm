@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Benchmark;
 
 my $sum = 0;
 my $numbers = '0123456789';

@@ -2,7 +2,6 @@
 use strict;
 use warnings;
 
-my $time_start = time();
 my $sum = 0;
 my @digits = split('', '0123456789');
 my @digit_words = split(' ', 'zero one two three four five six seven eight nine');
@@ -35,7 +34,4 @@ while (my $line = <>) {
 }
 
 print $sum . "\n";
-my $time_end = time();
-my $run_time = $time_end - $time_start;
-print "Took: " . $run_time . " seconds\n";
 
