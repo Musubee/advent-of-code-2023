@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-# TODO: refactor this at some point
-# TODO: figure out why load_data loads in an extra row and column
 use strict;
 use warnings;
 
@@ -14,25 +12,10 @@ for (my $row = 0; $row < $num_rows; $row++) {
     for (my $col = 0; $col < $num_cols; $col++) {
         if ($schematic[$row][$col] eq '*') {
             my @adj_part_nums = get_adj_part_nums($row, $col);
-            if (length(@adj_part_nums) == 2) {
-                $sum += @adj_part_nums[0] * @adj_part_nums[1];
+            if (scalar @adj_part_nums == 2) {
+                print "@adj_part_nums\n";
+                $sum += $adj_part_nums[0] * $adj_part_nums[1];
             }
-        }
-        my ($left, $right);
-        my @digits = ();
-        while ($col < $num_cols && $schematic[$row][$col] =~ /(\d)/) {
-            $left = $col unless defined $left;
-            $right = $col;
-            push(@digits, $schematic[$row][$col]);
-            $col++;
-        }
-        if (@digits && ! is_part_number($row, $left, $right)) {
-            # print "@digits\n";
-            # $sum += join "", @digits;
-        }
-        if (@digits && is_part_number($row, $left, $right)) {
-            # print "@digits\n";
-            $sum += join "", @digits;
         }
     }
 }
@@ -51,36 +34,73 @@ sub load_data {
 sub get_adj_part_nums {
     my ($row, $col) = @_;
 
-
-}
-
-sub is_part_number {
-    my ($row, $left, $right) = @_;
-    # check above and below
-    my $left_bound = $left > 0 ? $left - 1 : $left;
-    my $right_bound = $right < $num_cols - 1 ? $right + 1 : $right;
+    my @adj_part_nums = ();
     if ($row > 0) {
-        my $above_row = join "", @{$schematic[$row-1]}[$left_bound..$right_bound];
-        if ($above_row =~ /[^\d.]/) {
-            # print "above:$above_row";
-            return 1;
-        }
+        push(@adj_part_nums, horizontal_check($col, $row-1));
     }
     if ($row < $num_rows - 1) {
-        my $below_row = join "", @{$schematic[$row+1]}[$left_bound..$right_bound];
-        if ($below_row =~ /[^\d.]/) {
-            # print "below:$below_row";
-            return 1;
+        push(@adj_part_nums, horizontal_check($col, $row+1));
+    }
+    if ($col > 0) {
+        my $j = $col - 1;
+        my @digits_reversed = ();
+        while ($j > 0 && $schematic[$row][$j] =~ /(\d)/) {
+            push(@digits_reversed, $schematic[$row][$j]);
+            $j--;
+        }
+        if (@digits_reversed) {
+            my $digits_reversed_str = join "", @digits_reversed;
+            my $digits_str = substr($digits_reversed_str, 0, -1);
+            print "digits: " . (join "", reverse @digits_reversed) . "\n";
+            push(@adj_part_nums, join "", reverse @digits_reversed);
         }
     }
-    # check left and right
-    if ($left > 0 && $schematic[$row][$left-1] =~ /[^\d.]/) {
-        # print "left:$schematic[$row][$left-1]";
-        return 1;
+    if ($col < $num_cols - 1) {
+        my $j = $col + 1;
+        my @digits = ();
+        while ($j < $num_cols && $schematic[$row][$j] =~ /(\d)/) {
+            push(@digits, $schematic[$row][$j]);
+            $j++;
+        }
+        if (@digits) {
+            push(@adj_part_nums, join "", @digits);
+        }
     }
-    if ($right < $num_cols - 1 && $schematic[$row][$right+1] =~ /[^\d.]/) {
-        # print "right:$schematic[$row][$right+1]";
-        return 1;
-    }
-    return 0;
+
+    return @adj_part_nums;
 }
+
+# not super efficient but simplest logic imo
+sub horizontal_check {
+    my ($col, $row_to_check) = @_;
+    my @adj_part_nums = ();
+    for (my $j = 0; $j < $num_cols; $j++) {
+        my ($left, $right);
+        my @digits = ();
+        while ($j < $num_cols && $schematic[$row_to_check][$j] =~ /(\d)/) {
+            $left = $j unless defined $left;
+            $right = $j;
+            push(@digits, $schematic[$row_to_check][$j]);
+            $j++;
+        }
+        # Check if number this is adjacent to gear
+        my $collides_left = defined $left && abs($col - $left) <= 1;
+        my $collides_right = defined $right && abs($col - $right) <= 1;
+        my $collides_mid =
+            (defined $left && defined $right &&
+                $col - $left >= 1 && $right - $col >= 1);
+        if (@digits && ($collides_left || $collides_right || $collides_mid)) {
+            push(@adj_part_nums, join "", @digits);
+        }
+    }
+    return @adj_part_nums;
+}
+
+sub abs {
+    my $x = @_;
+    if ($x < 0) {
+        $x = -$x;
+    }
+    return $x
+}
+
